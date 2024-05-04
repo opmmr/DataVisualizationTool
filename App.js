@@ -3,9 +3,9 @@ import axios from 'axios';
 import { Bar } from 'react-chartjs-2';
 import 'chartjs-plugin-zoom';
 
-class App extends Component {
+class DataVisualizationTool extends Component {
   state = {
-    data: {
+    chartData: {
       labels: [],
       datasets: [
         {
@@ -14,10 +14,10 @@ class App extends Component {
           backgroundColor: 'rgba(75,192,192,0.4)',
           borderColor: 'rgba(75,192,192,1)',
           borderWidth: 1,
-        }
-      ]
+        },
+      ],
     },
-    options: {
+    chartOptions: {
       responsive: true,
       plugins: {
         zoom: {
@@ -28,43 +28,46 @@ class App extends Component {
           zoom: {
             enabled: true,
             mode: 'x',
-          }
-        }
-      }
-    }
+          },
+        },
+      },
+    },
   };
 
   async componentDidMount() {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/data`);
+      // Load data from backend
+      const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/data`;
+      const response = await axios.get(apiUrl);
       const { labels, values } = response.data;
 
-      // Update chart data
-      this.setState(prevState => ({
-        data: {
-          ...prevState.data,
-          labels: labels,
+      this.setState((prevState) => ({
+        chartData: {
+          ...prevState.chartData,
+          labels,
           datasets: [
             {
-              ...prevState.data.datasets[0],
-              data: values
-            }
-          ]
-        }
+              ...prevState.chartData.datasets[0],
+              data: values,
+            },
+          ],
+        },
       }));
     } catch (error) {
-          console.error('Fetching data failed:', error);
+      console.error('Fetching data failed:', error);
     }
   }
 
   render() {
+    const { chartData, chartOptions } = this.state;
+
     return (
       <div>
         <h2>Interactive Data Visualization</h2>
-        <Bar data={this.state.data} options={this.state.options} />
+        <Bar data={chartData} options={chartOptions} />
       </div>
     );
   }
 }
 
-export default App;
+export default DataVisualizationTool;
