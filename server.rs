@@ -1,7 +1,33 @@
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Responder, Result};
 use serde::{Deserialize, Serialize};
-use std::env;
+use std::{env, fmt};
+
+#[derive(Debug)]
+enum Error {
+    NotFound(String),
+    InternalServerError(String),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::NotFound(ref cause) => write!(f, "Not Found: {}", cause),
+            Error::InternalServerError(ref cause) => write!(f, "Internal Server Error: {}", cause),
+        }
+    }
+}
+
+impl actix_web::error::ResponseError for Error {
+    fn error_response(&self) -> HttpResponse {
+        match self {
+            Error::NotFound(ref _message) => HttpResponse::NotFound().json("Data not found"),
+            Error::InternalServerError(ref _message) => {
+                HttpResponse::InternalServerError().json("Internal server error")
+            }
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct DataPoint {
@@ -9,22 +35,34 @@ struct DataPoint {
     value: String,
 }
 
-async fn get_processed_data() -> impl Responder {
+async fn get_processed_data() -> Result<impl Responder, Error> {
     let data_samples = vec![
         DataPoint { id: 1, value: "Sample Data 1".into() },
         DataPoint { id: 2, value: "Sample Data 2".into() },
     ];
 
-    HttpResponse::Ok().json(data_samples)
+    if data_samples.is_empty() {
+        Err(Error::InternalServerError(
+            "Failed to process data".to_string(),
+        ))
+    } else {
+        Ok(HttpResponse::Ok().json(data_samples))
+    }
 }
 
-async fn query_specific_data(info: web::Path<u32>) -> impl Responder {
-    let data_sample = DataPoint {
-        id: *info,
-        value: format!("Sample Data {}", *info),
-    };
+async fn query_specific_data(info: web::Path<u32>) -> Result<impl Responder, Error> {
+    let id = *info;
 
-    HttpResponse::Ok().json(data_sample)
+    if id <= 0 || id > 2 {
+        Err(Error::NotFound(format!("Data with id {} not found", id)))
+    } else {
+        let data_sample = DataPoint {
+            id,
+            value: format!("Sample Data {}", id),
+        };
+
+        Ok(HttpResponse::Ok().json(data_sample))
+    }
 }
 
 async fn real_time_data_updates() -> impl Responder {
