@@ -1,5 +1,5 @@
 use actix::{Actor, StreamHandler};
-use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Error};
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Error, middleware::Logger};
 use actix_web_actors::ws;
 use log::{error, info};
 
@@ -14,10 +14,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWebSocket {
         match msg {
             Ok(ws::Message::Text(text)) => ctx.text(text),
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
-            Ok(_) => {}, // Other message types (Ping/Pong/Close) can be handled here.
+            Ok(_) => {}, // Handle other types of messages here (Ping/Pong/Close)
             Err(e) => {
                 error!("WebSocket Protocol Error: {:?}", e);
-                ctx.stop(); // Stop the WebSocket context on error
+                ctx.stop(); // Stop the WebSocket context on encountering a protocol error
             },
         }
     }
@@ -25,8 +25,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWebSocket {
 
 async fn websocket_route(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
     ws::start(MyWebSocket {}, &req, stream).map_err(|e| {
-        error!("WebSocket Error: {:?}", e);
-        e
+        error!("WebSocket connection error: {:?}", e);
+        actix_web::error::ErrorInternalServerError("Internal Server Error") // Provide a more user-friendly error message
     })
 }
 
@@ -35,10 +35,10 @@ async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info"); // Set log level
     env_logger::init(); // Initialize logger
     
-    info!("Starting server at http://127.0.0.1:8080...");
-    
+    // Enhance server initialization with Middleware for better request logging
     HttpServer::new(|| {
         App::new()
+            .wrap(Logger::default()) // Add Logger middleware for better access logging
             .route("/ws/", web::get().to(websocket_route))
     })
     .bind("127.0.0.1:8080")?
