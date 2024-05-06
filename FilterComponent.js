@@ -1,83 +1,100 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const FilterComponent = () => {
+const DataFilterComponent = () => {
     const [filters, setFilters] = useState({
         dateRange: {
-            start: '',
-            end: ''
+            startDate: '',
+            endDate: ''
         },
         keyword: ''
     });
-    const [data, setData] = useState([]);
+    const [fetchedData, setFetchedData] = useState([]);
 
-    const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT || 'http://localhost:8000/data';
+    const DATA_API_ENDPOINT = process.env.REACT_APP_DATA_API_ENDPOINT || 'http://localhost:8000/data';
 
-    const handleInputChange = (e) => {
+    const handleFilterChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'start' || name === 'end') {
-            setFilters((prevState) => ({
-                ...prevState,
-                dateRange: {
-                    ...prevState.dateRange,
-                    [name]: value
-                }
-            }));
-        } else {
-            setFilters((prevState) => ({
-                ...prevState,
-                [name]: value
-            }));
-        }
+        
+        setFilters((currentFilters) => {
+            const updatedFilters = { ...currentFilters };
+
+            if (name === 'startDate' || name === 'endDate') {
+                updatedFilters.dateRange[name] = value;
+            } else {
+                updatedFilters[name] = value;
+            }
+            
+            return updatedFilters;
+        });
     };
 
-    const fetchData = async () => {
+    const retrieveData = async () => {
         try {
-            const response = await axios.get(`${API_ENDPOINT}`, {
+            const { startDate, endDate } = filters.dateRange;
+            const response = await axios.get(DATA_API_ENDPOINT, {
                 params: {
-                    start: filters.dateRange.start,
-                    end: filters.dateRange.end,
+                    start: startDate,
+                    end: endDate,
                     keyword: filters.keyword
                 }
             });
-            setData(response.data);
+            setFetchedData(response.data);
         } catch (error) {
             console.error("Error fetching data: ", error);
         }
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        fetchData();
+    const onFiltersSubmit = (event) => {
+        event.preventDefault();
+        retrieveData();
     };
 
     useEffect(() => {
-        fetchData();
+        retrieveData();
     }, []);
 
     return (
         <div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={onFiltersSubmit}>
                 <div>
-                    <label htmlFor="start">Start Date</label>
-                    <input type="date" id="start" name="start" value={filters.dateRange.start} onChange={handleInputChange} />
+                    <label htmlFor="startDate">Start Date</label>
+                    <input 
+                        type="date" 
+                        id="startDate" 
+                        name="startDate" 
+                        value={filters.dateRange.startDate} 
+                        onChange={handleFilterChange} 
+                    />
                 </div>
                 <div>
-                    <label htmlFor="end">End Date</label>
-                    <input type="date" id="end" name="end" value={filters.dateRange.end} onChange={handleInputChange} />
+                    <label htmlFor="endDate">End Date</label>
+                    <input 
+                        type="date" 
+                        id="endDate" 
+                        name="endDate" 
+                        value={filters.dateRange.endDate} 
+                        onChange={handleFilterChange} 
+                    />
                 </div>
                 <div>
                     <label htmlFor="keyword">Keyword</label>
-                    <input type="text" id="keyword" name="keyword" value={filters.keyword} onChange={handleInputChange} />
+                    <input 
+                        type="text" 
+                        id="keyword" 
+                        name="keyword" 
+                        value={filters.keyword} 
+                        onChange={handleFilterChange} 
+                    />
                 </div>
                 <button type="submit">Apply Filters</button>
             </form>
             <div>
-                <h2>Data</h2>
+                <h2>Filtered Data</h2>
                 <ul>
-                    {data.map((item, index) => (
+                    {fetchedData.map((dataItem, index) => (
                         <li key={index}>
-                            {item.description} - {item.date}
+                            {dataItem.description} - {dataItem.date}
                         </li>
                     ))}
                 </ul>
@@ -86,4 +103,4 @@ const FilterComponent = () => {
     );
 };
 
-export default FilterComponent;
+export default DataFilterComponent;
