@@ -3,6 +3,8 @@ use std::{collections::HashMap, env, fs::File, io::BufReader};
 use csv::ReaderBuilder;
 use sqlx::{Any, AnyPool};
 use once_cell::sync::OnceCell;
+use log::{info, warn};
+use env_logger;
 
 struct Config {
     database_url: String,
@@ -21,17 +23,27 @@ struct DataRecord {}
 
 fn read_csv_file(file_path: &str) -> Vec<DataRecord> {
     let file = File::open(file_path).expect("Cannot open file.");
+    info!("CSV file opened successfully: {}", file_path);
+    
     let mut csv_reader = ReaderBuilder::new().from_reader(file);
-    csv_reader
+    let records: Vec<DataRecord> = csv_reader
         .deserialize()
         .filter_map(Result::ok)
-        .collect()
+        .collect();
+
+    info!("CSV Data reading and deserialization completed.");
+    records
 }
 
 fn read_json_file(file_path: &str) -> Vec<DataRecord> {
     let file = File::open(file_path).expect("Cannot open file.");
+    info!("JSON file opened successfully: {}", file_path);
+
     let reader = BufReader::new(file);
-    serde_json::from_reader(reader).expect("Error during reading JSON")
+    let records: Vec<DataRecord> = serde_json::from_reader(reader).expect("Error during reading JSON");
+
+    info!("JSON Data reading and deserialization completed.");
+    records
 }
 
 static DB_CACHE: OnceCell<HashMap<String, Vec<DataRecord>>> = OnceCell::new();
@@ -39,16 +51,20 @@ static DB_CACHE: OnceCell<HashMap<String, Vec<DataRecord>>> = OnceCell::new();
 async fn read_from_database(query: &str) -> Result<Vec<DataRecord>, sqlx::Error> {
     let cache = DB_CACHE.get_or_init(|| HashMap::new());
     if let Some(result) = cache.get(query) {
+        info!("Returning cached data for query: {}", query);
         return Ok(result.clone());
     }
 
     let config = Config::from_env();
     let pool: AnyPool = AnyPool::connect(&config.database_url).await?;
+    info!("Database connection established.");
+
     let result = sqlx::query_as::<Any, DataRecord>(query)
         .fetch_all(&pool)
         .await?;
 
     cache.insert(query.to_string(), result.clone());
+    info!("Query executed and results cached: {}", query);
 
     Ok(result)
 }
@@ -58,16 +74,20 @@ static MEAN_CACHE: OnceCell<HashMap<Vec<f64>, f64>> = OnceCell::new();
 fn calculate_mean(data: &[f64]) -> f64 {
     let cache = MEAN_CACHE.get_or_init(|| HashMap::new());
     if let Some(&mean) = cache.get(data) {
+        info!("Returning cached mean.");
         return mean;
     }
 
     let mean = if data.is_empty() {
+        warn!("Data is empty, returning mean as 0.");
         0.0
     } else {
-        data.iter().sum::<f64>() / data.len() as f64
+        let sum: f64 = data.iter().sum();
+        sum / data.len() as f64
     };
 
     cache.insert(data.to_vec(), mean);
+    info!("Mean calculated and cached.");
 
     mean
 }
@@ -77,9 +97,18 @@ fn analyze_data(records: &[DataRecord]) {
 
     for record in records {
         // Analysis logic here
+        info!("Analyzing data record.");
     }
 }
 
 fn prepare_for_visualization(data: &[DataRecord]) -> Vec<DataRecord> {
+    info!("Preparing data for visualization.");
     data.to_vec()
+}
+
+fn main() {
+    env_logger::init(); // Initialize the logger
+    
+    // Your logic here
+    info!("Application started.");
 }
