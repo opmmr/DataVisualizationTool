@@ -5,11 +5,11 @@ import 'chartjs-plugin-zoom';
 
 class DataVisualizationTool extends Component {
   state = {
-    chartData: {
+    chartConfiguration: {
       labels: [],
       datasets: [
         {
-          label: 'Dataset',
+          label: 'Dataset Name',
           data: [],
           backgroundColor: 'rgba(75,192,192,0.4)',
           borderColor: 'rgba(75,192,192,1)',
@@ -17,7 +17,7 @@ class DataVisualizationTool extends Component {
         },
       ],
     },
-    chartOptions: {
+    chartInteractivityOptions: {
       responsive: true,
       plugins: {
         zoom: {
@@ -35,36 +35,44 @@ class DataVisualizationTool extends Component {
   };
 
   async componentDidMount() {
+    this.fetchChartData();
+  }
+
+  fetchChartData = async () => {
     try {
       // Load data from backend
       const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/data`;
       const response = await axios.get(apiUrl);
       const { labels, values } = response.data;
 
-      this.setState((prevState) => ({
-        chartData: {
-          ...prevState.chartData,
-          labels,
-          datasets: [
-            {
-              ...prevState.chartData.datasets[0],
-              data: values,
-            },
-          ],
-        },
-      }));
+      this.updateChartData(labels, values);
     } catch (error) {
-      console.error('Fetching data failed:', error);
+      console.error('Error fetching chart data:', error);
     }
   }
 
+  updateChartData = (labels, values) => {
+    this.setState((prevState) => ({
+      chartConfiguration: {
+        ...prevState.chartConfiguration,
+        labels,
+        datasets: [
+          {
+            ...prevState.chartConfiguration.datasets[0],
+            data: values,
+          },
+        ],
+      },
+    }));
+  }
+
   render() {
-    const { chartData, chartOptions } = this.state;
+    const { chartConfiguration, chartInteractivityOptions } = this.state;
 
     return (
       <div>
         <h2>Interactive Data Visualization</h2>
-        <Bar data={chartData} options={chartOptions} />
+        <Bar data={chartConfiguration} options={chartInteractivityOptions} />
       </div>
     );
   }
