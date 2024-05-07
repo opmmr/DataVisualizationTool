@@ -1,3 +1,8 @@
+[dependencies]
+rayon = "1.5.1"
+```
+
+```rust
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, fs::File, io::BufReader};
 use csv::ReaderBuilder;
@@ -5,6 +10,7 @@ use sqlx::{Any, AnyPool};
 use once_cell::sync::OnceCell;
 use log::{info, warn};
 use env_logger;
+use rayon::prelude::*;
 
 struct Config {
     database_url: String,
@@ -82,7 +88,7 @@ fn calculate_mean(data: &[f64]) -> f64 {
         warn!("Data is empty, returning mean as 0.");
         0.0
     } else {
-        let sum: f64 = data.iter().sum();
+        let sum: f64 = data.par_iter().sum(); // Use Rayon for parallel sum
         sum / data.len() as f64
     };
 
@@ -93,22 +99,25 @@ fn calculate_mean(data: &[f64]) -> f64 {
 }
 
 fn analyze_data(records: &[DataRecord]) {
-    let mut occurrences = HashMap::new();
-
-    for record in records {
-        // Analysis logic here
+    records.par_iter().for_each(|_record| {
+        // Async analysis logic here
         info!("Analyzing data record.");
-    }
+    });
 }
 
 fn prepare_for_visualization(data: &[DataRecord]) -> Vec<DataRecord> {
     info!("Preparing data for visualization.");
-    data.to_vec()
+    let prepared_data: Vec<DataRecord> = data.par_iter().map(|record| {
+        // Your transformation logic here
+        record.to_owned()
+    }).collect();
+
+    prepared_data
 }
 
 fn main() {
     env_logger::init(); // Initialize the logger
-    
+
     // Your logic here
     info!("Application started.");
 }
