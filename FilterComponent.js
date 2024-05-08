@@ -11,20 +11,23 @@ const DataFilterComponent = () => {
     });
     const [fetchedData, setFetchedData] = useState([]);
 
+    // Use REACT_APP_DATA_API_ENDPOINT from your .env for local or production API endpoint
     const DATA_API_ENDPOINT = process.env.REACT_APP_DATA_API_ENDPOINT || 'http://localhost:8000/data';
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
-        
-        setFilters((currentFilters) => {
+
+        setFilters(currentFilters => {
+            // Clone the current filters state
             const updatedFilters = { ...currentFilters };
 
+            // Update the date range or keyword based on the input name
             if (name === 'startDate' || name === 'endDate') {
                 updatedFilters.dateRange[name] = value;
             } else {
                 updatedFilters[name] = value;
             }
-            
+
             return updatedFilters;
         });
     };
@@ -39,20 +42,21 @@ const DataFilterComponent = () => {
                     keyword: filters.keyword
                 }
             });
+
             setFetchedData(response.data);
         } catch (error) {
-            console.error("Error fetching data: ", error);
+            console.error('Error fetching data:', error);
         }
     };
 
-    const onFiltersSubmit = (event) => {
-        event.preventDefault();
+    const onFiltersSubmit = (e) => {
+        e.preventDefault();
         retrieveData();
     };
 
     useEffect(() => {
         retrieveData();
-    }, []);
+    }, []); // Empty dependency array means this useEffect runs once on component mount
 
     return (
         <div>
