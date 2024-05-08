@@ -40,12 +40,27 @@ class DataVisualizationTool extends Component {
 
   fetchChartData = async () => {
     try {
+      const cache = localStorage.getItem('chartData');
+      if (cache) {
+        const { data, timestamp } = JSON.parse(cache);
+        // Check if the cache is older than 5 minutes
+        if (timestamp && (Date.now() - timestamp) < 300000) {
+          this.updateChartData(data.labels, data.values);
+          return;
+        }
+      }
+
       // Load data from backend
       const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/data`;
       const response = await axios.get(apiUrl);
       const { labels, values } = response.data;
 
+      // Update chart and cache data
       this.updateChartData(labels, values);
+      localStorage.setItem('chartData', JSON.stringify({
+        data: { labels, values },
+        timestamp: Date.now(),
+      }));
     } catch (error) {
       console.error('Error fetching chart data:', error);
     }
