@@ -1,74 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const DataFilterComponent = () => {
-    const [filters, setFilters] = useState({
+const DataFilteringComponent = () => {
+    const [filterCriteria, setFilterCriteria] = useState({
         dateRange: {
             startDate: '',
             endDate: ''
         },
         keyword: ''
     });
-    const [fetchedData, setFetchedData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
 
-    // Use REACT_APP_DATA_API_ENDPOINT from your .env for local or production API endpoint
-    const DATA_API_ENDPOINT = process.env.REACT_APP_DATA_API_ENDPOINT || 'http://localhost:8000/data';
+    const API_ENDPOINT = process.env.REACT_APP_DATA_API_ENDPOINT || 'http://localhost:8000/data';
 
-    const handleFilterChange = (e) => {
+    const handleCriteriaChange = (e) => {
         const { name, value } = e.target;
 
-        setFilters(currentFilters => {
-            // Clone the current filters state
-            const updatedFilters = { ...currentFilters };
+        setFilterCriteria(currentCriteria => {
+            const updatedCriteria = { ...currentCriteria };
 
-            // Update the date range or keyword based on the input name
             if (name === 'startDate' || name === 'endDate') {
-                updatedFilters.dateRange[name] = value;
+                updatedCriteria.dateRange[name] = value;
             } else {
-                updatedFilters[name] = value;
+                updatedCriteria[name] = value;
             }
 
-            return updatedFilters;
+            return updatedCriteria;
         });
     };
 
-    const retrieveData = async () => {
+    const fetchDataBasedOnFilters = async () => {
         try {
-            const { startDate, endDate } = filters.dateRange;
-            const response = await axios.get(DATA_API_ENDPOINT, {
+            const { startDate, endDate } = filterCriteria.dateRange;
+            const response = await axios.get(API_ENDPOINT, {
                 params: {
                     start: startDate,
                     end: endDate,
-                    keyword: filters.keyword
+                    keyword: filterCriteria.keyword
                 }
             });
 
-            setFetchedData(response.data);
+            setFilteredData(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);
         }
     };
 
-    const onFiltersSubmit = (e) => {
+    const handleFilterApplication = (e) => {
         e.preventDefault();
-        retrieveData();
+        fetchDataBasedOnFilters();
     };
 
     useEffect(() => {
-        retrieveData();
-    }, []); // Empty dependency array means this useEffect runs once on component mount
+        fetchDataBasedOnFilters();
+    }, []);
 
     return (
         <div>
-            <form onSubmit={onFiltersSubmit}>
+            <form onSubmit={handleFilterApplication}>
                 <div>
                     <label htmlFor="startDate">Start Date</label>
                     <input 
                         type="date" 
                         id="startDate" 
                         name="startDate" 
-                        value={filters.dateRange.startDate} 
-                        onChange={handleFilterChange} 
+                        value={filterCriteria.dateRange.startDate} 
+                        onChange={handleCriteriaChange} 
                     />
                 </div>
                 <div>
@@ -77,8 +74,8 @@ const DataFilterComponent = () => {
                         type="date" 
                         id="endDate" 
                         name="endDate" 
-                        value={filters.dateRange.endDate} 
-                        onChange={handleFilterChange} 
+                        value={filterCriteria.dateRange.endDate} 
+                        onChange={handleCriteriaChange} 
                     />
                 </div>
                 <div>
@@ -87,8 +84,8 @@ const DataFilterComponent = () => {
                         type="text" 
                         id="keyword" 
                         name="keyword" 
-                        value={filters.keyword} 
-                        onChange={handleFilterChange} 
+                        value={filterCriteria.keyword} 
+                        onChange={handleCriteriaChange} 
                     />
                 </div>
                 <button type="submit">Apply Filters</button>
@@ -96,9 +93,9 @@ const DataFilterComponent = () => {
             <div>
                 <h2>Filtered Data</h2>
                 <ul>
-                    {fetchedData.map((dataItem, index) => (
+                    {filteredData.map((item, index) => (
                         <li key={index}>
-                            {dataItem.description} - {dataItem.date}
+                            {item.description} - {item.date}
                         </li>
                     ))}
                 </ul>
@@ -107,4 +104,4 @@ const DataFilterComponent = () => {
     );
 };
 
-export default DataFilterComponent;
+export default DataFilteringComponent;
