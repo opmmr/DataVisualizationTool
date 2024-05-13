@@ -32,9 +32,10 @@ class DataVisualizationTool extends Component {
         },
       },
     },
-    selectedGraphType: 'Bar', // Default graph type
-    availableDatasets: ['Dataset 1', 'Dataset 2'], // Simulate available datasets
-    selectedDataset: 'Dataset 1', // Default dataset
+    selectedGraphType: 'Bar',
+    availableDatasets: ['Dataset 1', 'Dataset 2'],
+    selectedDataset: 'Dataset 1',
+    error: null, // State property to track any errors
   };
 
   async componentDidMount() {
@@ -43,28 +44,29 @@ class DataVisualizationTool extends Component {
 
   fetchChartData = async () => {
     try {
+      // Reset error state on new fetch attempt
+      this.setState({ error: null });
+
       const cache = localStorage.getItem(`chartData_${this.state.selectedDataset}`);
       if (cache) {
         const { data, timestamp } = JSON.parse(cache);
-        // Check if the cache is older than 5 minutes
         if (timestamp && (Date.now() - timestamp) < 300000) {
           this.updateChartData(data.labels, data.values);
           return;
         }
       }
 
-      // Simulated: Adjust this logic to fetch data based on the selected dataset.
       const apiUrl = `${process.env.REACT_APP_BACKEND_URL}/data/${this.state.selectedDataset}`;
       const response = await axios.get(apiUrl);
       const { labels, values } = response.data;
 
-      // Update chart and cache data
       this.updateChartData(labels, values);
       localStorage.setItem(`chartData_${this.state.selectedDataset}`, JSON.stringify({
         data: { labels, values },
         timestamp: Date.now(),
       }));
     } catch (error) {
+      this.setState({ error: 'Error fetching chart data. Please try again later.' });
       console.error('Error fetching chart data:', error);
     }
   }
@@ -89,9 +91,7 @@ class DataVisualizationTool extends Component {
   }
 
   handleDatasetChange = (event) => {
-    this.setState({ selectedDataset: event.target.value }, () => {
-      this.fetchChartData();
-    });
+    this.setState({ selectedDataset: event.target.value }, this.fetchChartData);
   }
 
   renderGraph() {
@@ -107,11 +107,12 @@ class DataVisualizationTool extends Component {
   }
 
   render() {
-    const { availableDatasets, selectedDataset, selectedGraphType } = this.state;
+    const { availableDatasets, selectedDataset, selectedGraphType, error } = this.state;
 
     return (
       <div>
         <h2>Interactive Data Visualization</h2>
+        {error && <div style={{ color: 'red' }}>Error: {error}</div>}
         <div>
           <label>
             Select Graph Type:
